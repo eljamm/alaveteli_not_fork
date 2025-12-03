@@ -5,7 +5,6 @@
   # devenv up (to start pg, redis... services)
   # you're ready to code!
 
-
   inputs = {
     self.submodules = true;
     nixpkgs.url = "github:cachix/devenv-nixpkgs/rolling";
@@ -19,10 +18,10 @@
     # nixpkgs-ruby.inputs = { nixpkgs.follows = "nixpkgs"; };
   };
 
-  nixConfig = {
-    extra-trusted-public-keys = "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw=";
-    extra-substituters = "https://devenv.cachix.org";
-  };
+  # nixConfig = {
+  #   extra-trusted-public-keys = "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw=";
+  #   extra-substituters = "https://devenv.cachix.org";
+  # };
 
   outputs =
     {
@@ -35,6 +34,7 @@
     }@inputs:
     let
       forEachSystem = nixpkgs.lib.genAttrs (import systems);
+      pkgs = forEachSystem (system: nixpkgs.legacyPackages.${system});
     in
     {
       packages = forEachSystem (
@@ -52,22 +52,17 @@
       );
 
       # TODO: pass this from theme flake
-      themeGemfile = ./Gemfile_theme;
-      themeGemset = import ./gemset_theme.nix;
-      themeLockfile = ./Gemfile_theme.lock;
+      themeGemfile = ./Gemfile;
+      themeGemset = ./gemset.nix;
+      themeLockfile = ./Gemfile.lock;
 
-      mkBundleEnv = forEachSystem (
-        system:
-        let
-          pkgs = nixpkgs.legacyPackages.${system};
-        in
-        {
-          default = pkgs.callPackage ./nix/bundlerEnv.nix { };
-        }
-      );
+      mkBundleEnv = forEachSystem (system: {
+        default = args: pkgs.${system}.callPackage ./nix/bundlerEnv.nix args;
+      });
+
       alaveteliGems = forEachSystem (system: {
         # pass themeGems from the theme's dev env flake
-        default = self.outputs.mkBundleEnv.${system}.default.default {
+        default = self.outputs.mkBundleEnv.${system}.default {
           themeGemfile = self.outputs.themeGemfile;
           themeGemset = self.outputs.themeGemset;
           themeLockfile = self.outputs.themeLockfile;
@@ -139,7 +134,7 @@
           pkgs = nixpkgs.legacyPackages.${system};
           toYAML = nixpkgs.lib.generators.toYAML { };
 
-          rails_db_conf_file = pkgs.writeText "database.yml" (toYAML {
+          rails_db_conf = {
             # this config must be overridden in the theme
             development = {
               adapter = "postgresql";
@@ -150,7 +145,8 @@
               username = dbUser;
               password = "changeme";
             };
-          });
+          };
+          rails_db_conf_file = pkgs.writeText "database.yml" (toYAML rails_db_conf);
           # ideally, this would load general.yml-example and override its contents
           # with whatever is passed below
           alaveteli_config_general = pkgs.writeText "general.yml" (toYAML {
@@ -233,12 +229,12 @@
               exec = ''
                 psql -U ${dbUser} -h ${dbHost} -p ${toString dbPort} ${rails_db_conf.development.database}
               '';
-              packages = [ pkgs.postgresql_13 ];
+              packages = [ pkgs.postgresql_16 ];
             };
 
             services.postgres = {
               enable = true;
-              package = pkgs.postgresql_13;
+              package = pkgs.postgresql_16;
               initialDatabases = [
                 {
                   name = "alaveteli_test";
