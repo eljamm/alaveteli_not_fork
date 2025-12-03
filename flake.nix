@@ -129,23 +129,20 @@
           devWithTheme = devenv.lib.mkShell {
             inherit inputs pkgs;
             modules = [
-              (
-                self.nixosModules.common
-                // {
-                  # enterShell = self.devShells.${system}.default.enterShell
-                  enterShell = self.devShells.${system}.enterShell + "echo Using theme";
-                  env = self.devShells.${system}.env // {
-                    FOOENV = "themeON";
-                  };
-                }
-              )
+              {
+                enterShell = "echo Using theme";
+                env = {
+                  FOOENV = "themeON";
+                };
+              }
+              self.nixosModules.common
             ];
           };
         };
       }
     )
     // flake-utils.lib.eachDefaultSystemPassThrough (system: {
-      # commonModules are exposed here so that each devenv can access
+      # common modules are exposed here so that each devenv can access
       # the various components and override them
       nixosModules.common =
         {
