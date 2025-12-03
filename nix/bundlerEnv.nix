@@ -1,25 +1,27 @@
 {
-  # config,
-  pkgs,
+  lib,
+  stdenv,
+  bundlerEnv,
+  ruby_3_4,
+  icu,
+  writeShellScript,
+  nodejs,
+  defaultGemConfig,
+  file,
+  zlib,
   # TODO: move theme file args here to get rid of one level of function below
+  #
+  # pass 3 files that represent the *entire* set of gems used
+  # by the theme, ie. core alaveteli + theme gems
   themeGemfile,
   themeLockfile,
   themeGemset,
   ...
 }:
-# {
-# default =
-#   {
-#     # pass 3 files that represent the *entire* set of gems used
-#     # by the theme, ie. core alaveteli + theme gems
-#     themeGemfile ? null,
-#     themeLockfile ? null,
-#     themeGemset,
-#   }:
-pkgs.bundlerEnv {
+bundlerEnv {
   name = "gems-for-alaveteli";
   gemdir = ./..;
-  ruby = pkgs.ruby_3_4;
+  ruby = ruby_3_4;
   extraConfigPaths = [ "${./..}/gems" ];
   lockfile = themeLockfile;
   gemfile = themeGemfile;
@@ -49,20 +51,20 @@ pkgs.bundlerEnv {
     # add build dependencies for gems alaveteli uses
     // {
       mini_racer = gems.mini_racer // {
-        buildInputs = [ pkgs.icu ];
+        buildInputs = [ icu ];
         dontBuild = false;
         NIX_LDFLAGS = "-licui18n";
       };
       libv8-node =
         let
-          noopScript = pkgs.writeShellScript "noop" "exit 0";
-          linkFiles = pkgs.writeShellScript "link-files" ''
+          noopScript = writeShellScript "noop" "exit 0";
+          linkFiles = writeShellScript "link-files" ''
             cd ../..
 
-            mkdir -p vendor/v8/${pkgs.stdenv.hostPlatform.system}/libv8/obj/
-            ln -s "${pkgs.nodejs.libv8}/lib/libv8.a" vendor/v8/${pkgs.stdenv.hostPlatform.system}/libv8/obj/libv8_monolith.a
+            mkdir -p vendor/v8/${stdenv.hostPlatform.system}/libv8/obj/
+            ln -s "${nodejs.libv8}/lib/libv8.a" vendor/v8/${stdenv.hostPlatform.system}/libv8/obj/libv8_monolith.a
 
-            ln -s ${pkgs.nodejs.libv8}/include vendor/v8/include
+            ln -s ${nodejs.libv8}/include vendor/v8/include
 
             mkdir -p ext/libv8-node
             echo '--- !ruby/object:Libv8::Node::Location::Vendor {}' >ext/libv8-node/.location.yml
@@ -81,12 +83,11 @@ pkgs.bundlerEnv {
         };
     };
 
-  gemConfig = pkgs.defaultGemConfig // {
-    mahoro = attrs: { nativeBuildInputs = [ pkgs.file ]; };
-    xapian-full-alaveteli = attrs: { nativeBuildInputs = [ pkgs.zlib ]; };
+  gemConfig = defaultGemConfig // {
+    mahoro = attrs: { nativeBuildInputs = [ file ]; };
+    xapian-full-alaveteli = attrs: { nativeBuildInputs = [ zlib ]; };
     statistics2 = attrs: {
       buildFlags = [ "--with-cflags=-Wno-error=implicit-int" ];
     };
   };
 }
-# }

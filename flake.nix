@@ -40,9 +40,12 @@
       system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        mkBundleEnv = args: pkgs.callPackage ./nix/bundlerEnv.nix args;
       in
       rec {
+        lib = {
+          mkBundleEnv = args: pkgs.callPackage ./nix/bundlerEnv.nix args;
+        };
+
         packages = {
           devenv-up = devShells.default.config.procfileScript;
           devenv-test = devShells.default.config.test;
@@ -53,7 +56,7 @@
 
         alaveteliGems = {
           # pass themeGems from the theme's dev env flake
-          default = mkBundleEnv {
+          default = lib.mkBundleEnv {
             # TODO: pass this from theme flake
             themeGemfile = ./Gemfile;
             themeGemset = ./gemset.nix;
