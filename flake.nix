@@ -42,17 +42,13 @@
         pkgs = nixpkgs.legacyPackages.${system};
         mkBundleEnv = args: pkgs.callPackage ./nix/bundlerEnv.nix args;
       in
-      {
+      rec {
         packages = {
-          devenv-up = self.devShells.${system}.default.config.procfileScript;
-          devenv-test = self.devShells.${system}.default.config.test;
+          devenv-up = devShells.default.config.procfileScript;
+          devenv-test = devShells.default.config.test;
           serverTests = pkgs.testers.runNixOSTest (
             import ./nix/alaveteli-server-test.nix { inherit inputs; }
           );
-        };
-
-        mkBundleEnv = {
-          default = args: pkgs.callPackage ./nix/bundlerEnv.nix args;
         };
 
         alaveteliGems = {
@@ -70,7 +66,7 @@
           # and for development
           running =
             {
-              myGems ? self.alaveteliGems.${system}.default,
+              myGems ? alaveteliGems.default,
             }:
             with pkgs;
             [
@@ -118,7 +114,9 @@
           # use this one to develop on core alaveteli, without a theme
           default = devenv.lib.mkShell {
             inherit inputs pkgs;
-            modules = [ self.nixosModules.common ];
+            modules = [
+              self.nixosModules.common
+            ];
           };
 
           # use this env to develop with some custom theme
