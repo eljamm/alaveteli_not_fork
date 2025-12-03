@@ -62,6 +62,11 @@
             themeGemset = ./gemset.nix;
             themeLockfile = ./Gemfile.lock;
           };
+          sparql = lib.mkBundleEnv {
+            themeGemfile = ./lib/themes/sparql/Gemfile;
+            themeGemset = ./lib/themes/sparql/gemset.nix;
+            themeLockfile = ./lib/themes/sparql/Gemfile.lock;
+          };
         };
 
         packagesForAlaveteli = {
