@@ -18,6 +18,10 @@
       url = "github:cachix/devenv";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     # nixpkgs-ruby.url = "github:bobvanderlinden/nixpkgs-ruby";
     # nixpkgs-ruby.inputs = { nixpkgs.follows = "nixpkgs"; };
   };
@@ -59,11 +63,7 @@
             themeGemset = ./gemset.nix;
             themeLockfile = ./Gemfile.lock;
           };
-          sparql = mkBundleEnv {
-            themeGemfile = ./lib/themes/sparql/Gemfile;
-            themeGemset = ./lib/themes/sparql/gemset.nix;
-            themeLockfile = ./lib/themes/sparql/Gemfile.lock;
-          };
+          sparql = mkBundleEnv (import ./lib/themes/sparql);
         };
 
         packagesForAlaveteli = {
@@ -112,6 +112,7 @@
           developing = with pkgs; [
             bundix
             figlet # for the text banner in the dev shell
+            secretspec
           ];
         };
 
@@ -150,6 +151,7 @@
       nixosModules.common =
         {
           pkgs,
+          config,
           ...
         }:
         let
@@ -186,6 +188,13 @@
           packages =
             self.packagesForAlaveteli.${system}.running { } ++ self.packagesForAlaveteli.${system}.developing;
 
+          # secrets management
+          # https://devenv.sh/integrations/secretspec/
+          secretspec = {
+            enable = true;
+            profile = "development";
+          };
+
           enterShell = ''
             export GIT_DIR=$DEVENV_ROOT/.git
             export GIT_WORK_TREE=$DEVENV_ROOT
@@ -209,6 +218,8 @@
             echo "useful commands:"
             echo "rails c (no path, just this!)"
             echo "Outgoing emails are here: http://localhost:8025"
+
+            export REDIS_URL="${config.secretspec.secrets.REDIS_URL}"
           '';
 
           # this is required to build the pg gem on linux
@@ -285,5 +296,15 @@
             enable = true;
           };
         };
+
+      nixosConfigurations = {
+        alaveteli = nixpkgs.lib.nixosSystem {
+          inherit system;
+          modules = [
+            inputs.sops-nix.nixosModules.sops
+          ];
+        };
+      };
     });
+
 }
