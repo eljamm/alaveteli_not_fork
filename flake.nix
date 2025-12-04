@@ -193,6 +193,7 @@
           secretspec = {
             enable = true;
             profile = "development";
+            provider = "keyring";
           };
 
           enterShell = ''
@@ -218,8 +219,6 @@
             echo "useful commands:"
             echo "rails c (no path, just this!)"
             echo "Outgoing emails are here: http://localhost:8025"
-
-            export REDIS_URL="${config.secretspec.secrets.REDIS_URL}"
           '';
 
           # this is required to build the pg gem on linux
